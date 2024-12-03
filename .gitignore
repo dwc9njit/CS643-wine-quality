@@ -1,0 +1,16 @@
+# Python virtual environment
+venv/
+
+# Logs
+logs/
+
+# Model files
+models/
+
+# Ignore large Spark tarball
+spark-*.tgz
+
+# System files
+.DS_Store
+*.pyc
+__pycache__/
