@@ -5,7 +5,7 @@ venv/
 logs/
 
 # Model files
-models/
+# models/
 
 # Ignore large Spark tarball
 spark-*.tgz
