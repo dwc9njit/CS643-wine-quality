@@ -8,11 +8,14 @@ from utils import load_and_prepare_data
 
 MODEL_PATH = "models/tuned_rf_model"
 VALIDATION_DATA_PATH = "data/ValidationDataset.csv"
-MODEL_NOT_FOUND_ERROR = f"Model path {MODEL_PATH} does not exist. 
-    Ensure the model is trained and available."
+MODEL_NOT_FOUND_ERROR = (
+    f"Model path {MODEL_PATH} does not exist. "
+    "Ensure the model is trained and available."
+)
 PREDICTIONS_NOT_GENERATED_ERROR = "Predictions were not generated."
 DATASET_EMPTY_ERROR = "The validation dataset is empty. Check the input data file."
 PREDICTIONS_COLUMNS_ERROR = "Predictions DataFrame is missing the 'prediction' column."
+
 
 def test_prediction_loading(spark_session):
     """
