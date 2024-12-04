@@ -1,0 +1,50 @@
+name: Python CI/CD Workflow
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Python
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
+
+      # Step 3: Install dependencies
+      - name: Install Dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Step 4: Run linting with pylint
+      - name: Lint Code
+        run: |
+          source venv/bin/activate
+          pylint src tests
+
+      # Step 5: Run tests with pytest
+      - name: Run Tests
+        run: |
+          source venv/bin/activate
+          pytest tests/
+
+      # Step 6: (Optional) Deploy
+      # Uncomment and customize the deployment step if you need it
+      # - name: Deploy to Production
+      #   run: |
+      #     echo "Deploying..."
