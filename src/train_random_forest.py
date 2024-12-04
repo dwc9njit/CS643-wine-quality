@@ -1,63 +1,35 @@
+"""
+Train a Random Forest model for wine quality prediction.
+"""
+
+import logging
 from pyspark.sql import SparkSession
-from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.classification import RandomForestClassifier
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
+from utils import load_and_prepare_data
 
-# Step 1: Initialize Spark session
-spark = SparkSession.builder.appName("Wine Quality Prediction - Random Forest").getOrCreate()
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Step 2: Load the training dataset
-data = spark.read.csv(
-    "data/TrainingDataset.csv",
-    header=True,
-    inferSchema=True,
-    sep=";",           # Correct delimiter
-    ignoreLeadingWhiteSpace=True,
-    ignoreTrailingWhiteSpace=True
-)
+def main():
+    """
+    Main function to train a Random Forest model.
+    """
+    spark = SparkSession.builder.appName("Wine Quality Prediction").getOrCreate()
+    logger.info("Loading and preparing dataset.")
 
-# Step 3: Assemble features
-assembler = VectorAssembler(inputCols=[
-        "fixed_acidity",
-        "volatile_acidity",
-        "citric_acid",
-        "residual_sugar",
-        "chlorides",
-        "free_sulfur_dioxide",
-        "total_sulfur_dioxide",
-        "density",
-        "pH",
-        "sulphates",
-        "alcohol"
-    ],
-    outputCol="features"
-)
-dataset = assembler.transform(data).select("features", "quality")
+    dataset = load_and_prepare_data(spark, "data/TrainingDataset.csv")
 
-# Step 4: Train Random Forest model
-rf = RandomForestClassifier(featuresCol="features", labelCol="quality", numTrees=50, maxDepth=5, seed=42)
-rf_model = rf.fit(dataset)
+    # Train Random Forest model
+    rf = RandomForestClassifier(labelCol="quality", featuresCol="features", numTrees=10)
+    model = rf.fit(dataset)
+    logger.info("Random Forest model trained successfully.")
 
-# Step 5: Save the trained model
-rf_model.write().overwrite().save("models/random_forest_model")
+    # Model evaluation
+    predictions = model.transform(dataset)
+    evaluator = MulticlassClassificationEvaluator(labelCol="quality", predictionCol="prediction")
+    accuracy = evaluator.evaluate(predictions, {evaluator.metricName: "accuracy"})
+    logger.info("Model accuracy: %.2f%%", accuracy * 100)
 
-# Step 6: Evaluate the model on training data
-predictions = rf_model.transform(dataset)
-
-# Evaluate using accuracy, precision, recall, and F1-score
-evaluator = MulticlassClassificationEvaluator(labelCol="quality", predictionCol="prediction")
-
-accuracy = evaluator.setMetricName("accuracy").evaluate(predictions)
-precision = evaluator.setMetricName("weightedPrecision").evaluate(predictions)
-recall = evaluator.setMetricName("weightedRecall").evaluate(predictions)
-f1 = evaluator.setMetricName("f1").evaluate(predictions)
-
-# Print performance metrics
-print(f"Model Performance Metrics (Training Dataset):")
-print(f"Accuracy: {accuracy:.4f}")
-print(f"Precision: {precision:.4f}")
-print(f"Recall: {recall:.4f}")
-print(f"F1-Score: {f1:.4f}")
-
-# Step 7: Stop the Spark session
-spark.stop()
+if __name__ == "__main__":
+    main()
