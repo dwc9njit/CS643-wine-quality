@@ -17,33 +17,60 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Step 2: Set up Python
+      # Step 2: Cache dependencies
+      - name: Cache Python Dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # Step 3: Set up Python
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
           python-version: 3.10.12
 
-      # Step 3: Install dependencies
+      # Step 4: Install dependencies
       - name: Install Dependencies
         run: |
+          set -e
           python -m venv venv
           source venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Step 4: Export PYTHONPATH
+      # Step 5: Export PYTHONPATH
       - name: Set PYTHONPATH
         run: |
           echo "PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE/src" >> $GITHUB_ENV
 
-      # Step 5: Run linting with pylint
+      # Step 6: Train Model
+      - name: Train Model
+        run: |
+          set -e
+          source venv/bin/activate
+          python src/train_rf_tuning.py
+
+      # Step 7: Run linting with pylint
       - name: Lint Code
         run: |
+          set -e
           source venv/bin/activate
-          pylint --exit-zero src tests
+          pylint src tests
 
-      # Step 6: Run tests with pytest
+      # Step 8: Run tests with pytest
       - name: Run Tests
         run: |
+          set -e
           source venv/bin/activate
-          pytest tests/
+          pytest tests/ --junitxml=pytest-report.xml
+
+      # Step 9: Upload test results (optional)
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: pytest-report
+          path: pytest-report.xml
