@@ -31,21 +31,20 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Step 4: Run linting with pylint
+      # Step 4: Export PYTHONPATH
+      - name: Set PYTHONPATH
+        run: |
+          echo "PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE/src" >> $GITHUB_ENV
+
+      # Step 5: Run linting with pylint
       - name: Lint Code
         run: |
-            source venv/bin/activate
-            pylint src tests --exit-zero
-    
+          source venv/bin/activate
+          pylint src tests
 
-      # Step 5: Run tests with pytest
+      # Step 6: Run tests with pytest
       - name: Run Tests
         run: |
           source venv/bin/activate
           pytest tests/
-
-      # Step 6: (Optional) Deploy
-      # Uncomment and customize the deployment step if you need it
-      # - name: Deploy to Production
-      #   run: |
-      #     echo "Deploying..."
+          
