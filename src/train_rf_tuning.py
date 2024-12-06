@@ -1,5 +1,5 @@
 """
-Hyperparameter tuning for a Random Forest model.
+Hyperparameter tuning for a Random Forest model in Spark.
 """
 
 import logging
