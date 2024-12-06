@@ -15,11 +15,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout Code
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Step 2: Cache Python Dependencies
       - name: Cache Python Dependencies
         uses: actions/cache@v3
         with:
@@ -28,13 +26,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      # Step 3: Set up Python
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
           python-version: 3.10.12
 
-      # Step 4: Install Dependencies
       - name: Install Dependencies
         run: |
           set -e
@@ -42,16 +38,8 @@ jobs:
           source venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
+          pip install pyspark==3.5.3 hadoop-aws
 
-      # Step 5: Download Hadoop and AWS SDK Dependencies
-      - name: Add Spark Hadoop and AWS SDK Dependencies
-        run: |
-          set -e
-          mkdir -p ~/.ivy2/jars
-          curl -L -o ~/.ivy2/jars/hadoop-aws-3.3.6.jar https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.6/hadoop-aws-3.3.6.jar
-          curl -L -o ~/.ivy2/jars/aws-java-sdk-bundle-1.12.526.jar https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.526/aws-java-sdk-bundle-1.12.526.jar
-
-      # Step 6: Set AWS Credentials
       - name: Set AWS Credentials
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
@@ -59,12 +47,10 @@ jobs:
         run: |
           echo "AWS Credentials are set."
 
-      # Step 7: Set PYTHONPATH
       - name: Set PYTHONPATH
         run: |
           echo "PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE/src" >> $GITHUB_ENV
 
-      # Step 8: Train Model
       - name: Train Model
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
@@ -72,11 +58,12 @@ jobs:
         run: |
           set -e
           source venv/bin/activate
-          spark-submit \
-            --packages org.apache.hadoop:hadoop-aws:3.3.6,com.amazonaws:aws-java-sdk-bundle:1.12.526 \
-            src/train_rf_tuning.py
+          if [ -f "src/train_rf_tuning.py" ]; then
+            python src/train_rf_tuning.py
+          else
+            echo "train_rf_tuning.py not found. Please ensure the file is present in the repository." && exit 1
+          fi
 
-      # Step 9: Upload Model Artifacts
       - name: Upload Model Artifacts
         if: always()
         uses: actions/upload-artifact@v3
@@ -84,21 +71,18 @@ jobs:
           name: model-artifacts
           path: models/tuned_rf_model
 
-      # Step 10: Lint Code
       - name: Lint Code
         run: |
           set -e
           source venv/bin/activate
           pylint src tests
 
-      # Step 11: Run Tests
       - name: Run Tests
         run: |
           set -e
           source venv/bin/activate
           pytest tests/ --junitxml=pytest-report.xml
 
-      # Step 12: Upload Test Results
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v3
