@@ -16,3 +16,5 @@ spark-*.tgz
 __pycache__/
 .env
 hadoop-3.3.6.tar.gz
+data/TestingDataset.csv
+src/test_s3_integration.py
