@@ -16,6 +16,9 @@ load_dotenv()
 
 AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY")
 AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY")
+S3_ENDPOINT = os.getenv("S3_ENDPOINT", "s3.amazonaws.com")
+TRAINING_DATA_PATH = "s3a://dwc9-wine-data-1/TrainingDataset.csv"
+MODEL_OUTPUT_PATH = "s3a://dwc9-wine-data-1/models/tuned_rf_model"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,20 +27,30 @@ def main():
     """
     Main function for hyperparameter tuning.
     """
+    # Validate AWS credentials
+    if not AWS_ACCESS_KEY or not AWS_SECRET_KEY:
+        logger.error("AWS_ACCESS_KEY or AWS_SECRET_KEY is not set.")
+        raise ValueError("Missing AWS credentials. Please set them in the environment.")
+    
+    logger.info("AWS_ACCESS_KEY: %s", AWS_ACCESS_KEY[:4] + "..." + AWS_ACCESS_KEY[-4:])
+
     # Configure Spark to connect to S3
     spark = (
         SparkSession.builder
         .appName("Random Forest Tuning")
-        .config("spark.hadoop.fs.s3a.access.key", os.getenv("AWS_ACCESS_KEY"))
-        .config("spark.hadoop.fs.s3a.secret.key", os.getenv("AWS_SECRET_KEY"))
-        .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com")
+        .config("spark.hadoop.fs.s3a.access.key", AWS_ACCESS_KEY)
+        .config("spark.hadoop.fs.s3a.secret.key", AWS_SECRET_KEY)
+        .config("spark.hadoop.fs.s3a.endpoint", S3_ENDPOINT)
         .getOrCreate()
     )
 
-    logger.info("Loading and preparing dataset from S3.")
-    
-    training_data_path = "s3a://dwc9-wine-data-1/TrainingDataset.csv"
-    dataset = load_and_prepare_data(spark, training_data_path)
+    try:
+        logger.info("Loading and preparing dataset from S3.")
+        dataset = load_and_prepare_data(spark, TRAINING_DATA_PATH)
+        logger.info("Dataset schema: %s", dataset.schema.simpleString())
+    except Exception as e:
+        logger.error("Error loading dataset: %s", e)
+        raise
 
     logger.info("Setting up Random Forest model and parameter grid.")
     rf = RandomForestClassifier(labelCol="quality", featuresCol="features")
@@ -58,18 +71,23 @@ def main():
         numFolds=5
     )
 
-    logger.info("Performing hyperparameter tuning with cross-validation.")
-    model = cv.fit(dataset)
+    try:
+        logger.info("Performing hyperparameter tuning with cross-validation.")
+        model = cv.fit(dataset)
 
-    # Log the best model's parameters
-    best_model = model.bestModel
-    best_params = best_model.extractParamMap()
-    logger.info("Best model parameters: %s", best_params)
+        # Log the best model's parameters and metrics
+        best_model = model.bestModel
+        best_params = best_model.extractParamMap()
+        logger.info("Best model parameters: %s", best_params)
+        accuracy = evaluator.evaluate(best_model.transform(dataset))
+        logger.info("Best model accuracy: %.2f%%", accuracy * 100)
 
-    # Save the best model to S3
-    model_output_path = "s3a://dwc9-wine-data-1/models/tuned_rf_model"
-    logger.info(f"Saving best model to {model_output_path}.")
-    best_model.write().overwrite().save(model_output_path)
+        # Save the best model to S3
+        logger.info(f"Saving best model to {MODEL_OUTPUT_PATH}.")
+        best_model.write().overwrite().save(MODEL_OUTPUT_PATH)
+    except Exception as e:
+        logger.error("Error during model training or saving: %s", e)
+        raise
 
 if __name__ == "__main__":
     main()
