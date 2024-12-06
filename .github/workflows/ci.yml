@@ -38,7 +38,6 @@ jobs:
           source venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pyspark==3.5.3 hadoop-aws
 
       - name: Set AWS Credentials
         env:
@@ -47,22 +46,16 @@ jobs:
         run: |
           echo "AWS Credentials are set."
 
-      - name: Set PYTHONPATH
-        run: |
-          echo "PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE/src" >> $GITHUB_ENV
-
-      - name: Train Model
+      - name: Train Model with Spark
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
         run: |
           set -e
           source venv/bin/activate
-          if [ -f "src/train_rf_tuning.py" ]; then
-            python src/train_rf_tuning.py
-          else
-            echo "train_rf_tuning.py not found. Please ensure the file is present in the repository." && exit 1
-          fi
+          spark-submit \
+            --packages org.apache.hadoop:hadoop-aws:3.3.6,com.amazonaws:aws-java-sdk-bundle:1.12.526 \
+            src/train_rf_tuning.py
 
       - name: Upload Model Artifacts
         if: always()
