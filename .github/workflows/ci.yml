@@ -42,15 +42,17 @@ jobs:
           source venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
-          pip install python-dotenv  # Ensure dotenv is installed
+          pip install python-dotenv
 
-      # Step 5: Load Environment Variables
-      - name: Load Environment Variables
+      # Step 5: Set AWS Credentials from Secrets
+      - name: Set AWS Credentials
+        env:
+          AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
         run: |
           set -e
-          if [ -f ".env" ]; then
-            export $(grep -v '^#' .env | xargs)
-          fi
+          echo "AWS_ACCESS_KEY=${AWS_ACCESS_KEY:0:4}********"
+          echo "AWS_SECRET_KEY=${AWS_SECRET_KEY:0:4}********"
 
       # Step 6: Export PYTHONPATH
       - name: Set PYTHONPATH
@@ -59,6 +61,9 @@ jobs:
 
       # Step 7: Train Model or Mock Model Directory
       - name: Prepare Model Directory
+        env:
+          AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
         run: |
           set -e
           source venv/bin/activate
