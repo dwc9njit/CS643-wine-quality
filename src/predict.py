@@ -14,19 +14,38 @@ def main():
     """
     Main function for making predictions.
     """
-    spark = SparkSession.builder.appName("Wine Quality Prediction").getOrCreate()
-    logger.info("Loading and preparing dataset.")
+    # Configure Spark to connect to S3
+    spark = (
+        SparkSession.builder
+        .appName("Wine Quality Prediction")
+        .config("spark.hadoop.fs.s3a.access.key", "REDACTED")
+        .config("spark.hadoop.fs.s3a.secret.key", "REDACTED")
+        .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com")
+        .getOrCreate()
+    )
 
-    dataset = load_and_prepare_data(spark, "data/ValidationDataset.csv")
-    model = RandomForestClassificationModel.load("models/tuned_rf_model")
+    logger.info("Loading and preparing dataset from S3.")
+    
+    # Load validation data from S3
+    validation_data_path = "s3a://dwc9-wine-data-1/ValidationDataset.csv"
+    dataset = load_and_prepare_data(spark, validation_data_path)
 
+    # Load the trained model from S3
+    model_path = "s3a://dwc9-wine-data-1/models/tuned_rf_model"
+    model = RandomForestClassificationModel.load(model_path)
+
+    # Make predictions
+    logger.info("Making predictions.")
     predictions = model.transform(dataset)
     predictions.show()
 
-    # Save predictions to a CSV file
-    logger.info("Saving predictions to 'data/predictions.csv'.")
+    # Save predictions to S3
+    predictions_output_path = "s3a://dwc9-wine-data-1/predictions/predictions.csv"
+    logger.info(f"Saving predictions to {predictions_output_path}.")
     predictions.select("features", "quality", "prediction").write.csv(
-        "data/predictions.csv", header=True, mode="overwrite")   
+        predictions_output_path, header=True, mode="overwrite"
+    )
 
 if __name__ == "__main__":
     main()
+

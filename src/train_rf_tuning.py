@@ -16,11 +16,23 @@ def main():
     """
     Main function for hyperparameter tuning.
     """
-    spark = SparkSession.builder.appName("Random Forest Tuning").getOrCreate()
-    logger.info("Loading and preparing dataset.")
+    # Configure Spark to connect to S3
+    spark = (
+        SparkSession.builder
+        .appName("Random Forest Tuning")
+        .config("spark.hadoop.fs.s3a.access.key", "REDACTED")
+        .config("spark.hadoop.fs.s3a.secret.key", "REDACTED")
+        .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com")
+        .getOrCreate()
+    )
 
-    dataset = load_and_prepare_data(spark, "data/TrainingDataset.csv")
+    logger.info("Loading and preparing dataset from S3.")
+    
+    # Load training data from S3
+    training_data_path = "s3a://dwc9-wine-data-1/TrainingDataset.csv"
+    dataset = load_and_prepare_data(spark, training_data_path)
 
+    logger.info("Setting up Random Forest model and parameter grid.")
     rf = RandomForestClassifier(labelCol="quality", featuresCol="features")
     param_grid = (
         ParamGridBuilder()
@@ -29,7 +41,9 @@ def main():
         .build()
     )
 
-    evaluator = MulticlassClassificationEvaluator(labelCol="quality", predictionCol="prediction")
+    evaluator = MulticlassClassificationEvaluator(
+        labelCol="quality", predictionCol="prediction", metricName="accuracy"
+    )
     cv = CrossValidator(
         estimator=rf,
         estimatorParamMaps=param_grid,
@@ -37,11 +51,18 @@ def main():
         numFolds=5
     )
 
-
+    logger.info("Performing hyperparameter tuning with cross-validation.")
     model = cv.fit(dataset)
-    best_params = model.bestModel.extractParamMap()
+
+    # Log the best model's parameters
+    best_model = model.bestModel
+    best_params = best_model.extractParamMap()
     logger.info("Best model parameters: %s", best_params)
 
+    # Save the best model to S3
+    model_output_path = "s3a://dwc9-wine-data-1/models/tuned_rf_model"
+    logger.info(f"Saving best model to {model_output_path}.")
+    best_model.write().overwrite().save(model_output_path)
 
 if __name__ == "__main__":
     main()

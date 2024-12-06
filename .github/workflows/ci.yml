@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+      - spark
   pull_request:
     branches:
       - main
+      - spark
 
 jobs:
   build:
