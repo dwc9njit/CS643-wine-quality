@@ -42,6 +42,7 @@ jobs:
           source venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
+          pip install python-dotenv  # Ensure dotenv is installed
 
       # Step 5: Export PYTHONPATH
       - name: Set PYTHONPATH
