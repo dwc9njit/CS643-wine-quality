@@ -30,8 +30,9 @@ def get_spark_session(app_name):
             .config("spark.hadoop.fs.s3a.secret.key", AWS_SECRET_KEY)
             .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com")
             .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
-            .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.6,com.amazonaws:aws-java-sdk-bundle:1.12.526")
+            .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.6,com.amazonaws:aws-java-sdk-bundle:1.12.530")
             .config("spark.hadoop.fs.s3a.aws.credentials.provider", "com.amazonaws.auth.DefaultAWSCredentialsProviderChain")
+            .config("spark.hadoop.fs.s3a.experimental.input.fadvise", "sequential")  # Disable prefetching
             .config("spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version", "2")
             .config("spark.hadoop.fs.s3a.committer.name", "directory")
             .config("spark.hadoop.fs.s3a.committer.staging.conflict-mode", "replace")
@@ -39,6 +40,7 @@ def get_spark_session(app_name):
             .config("spark.hadoop.fs.s3a.committer.magic.enabled", "false")
             .getOrCreate()
         )
+
         logger.info("SparkSession created successfully.")
         return spark
     except Exception as e:

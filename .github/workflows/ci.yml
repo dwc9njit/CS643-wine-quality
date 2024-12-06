@@ -57,7 +57,7 @@ jobs:
           set -e
           source venv/bin/activate
           spark-submit \
-            --packages org.apache.hadoop:hadoop-aws:3.3.6,com.amazonaws:aws-java-sdk-bundle:1.12.526 \
+            --packages org.apache.hadoop:hadoop-aws:3.3.6,com.amazonaws:aws-java-sdk-bundle:1.12.530 \
             --conf spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version=2 \
             --conf spark.hadoop.fs.s3a.committer.name=directory \
             --conf spark.hadoop.fs.s3a.committer.staging.conflict-mode=replace \
