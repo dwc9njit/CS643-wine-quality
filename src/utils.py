@@ -12,7 +12,7 @@ load_dotenv()
 
 def get_spark_session(app_name):
     """
-    Create and return a SparkSession configured for S3.
+    Create and return a SparkSession configured for S3 with DirectWrite.
     """
     AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY")
     AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY")
@@ -28,6 +28,13 @@ def get_spark_session(app_name):
         .config("spark.hadoop.fs.s3a.secret.key", AWS_SECRET_KEY)
         .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com")
         .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
+        .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.6,com.amazonaws:aws-java-sdk-bundle:1.12.526")
+        # DirectWrite configurations
+        .config("spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version", "2")
+        .config("spark.hadoop.fs.s3a.committer.name", "directory")
+        .config("spark.hadoop.fs.s3a.committer.staging.conflict-mode", "replace")
+        .config("spark.hadoop.fs.s3a.committer.staging.tmp.path", "/tmp/s3a")
+        .config("spark.hadoop.fs.s3a.committer.magic.enabled", "false")
         .getOrCreate()
     )
 
