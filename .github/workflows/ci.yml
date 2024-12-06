@@ -44,12 +44,20 @@ jobs:
           pip install -r requirements.txt
           pip install python-dotenv  # Ensure dotenv is installed
 
-      # Step 5: Export PYTHONPATH
+      # Step 5: Load Environment Variables
+      - name: Load Environment Variables
+        run: |
+          set -e
+          if [ -f ".env" ]; then
+            export $(grep -v '^#' .env | xargs)
+          fi
+
+      # Step 6: Export PYTHONPATH
       - name: Set PYTHONPATH
         run: |
           echo "PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE/src" >> $GITHUB_ENV
 
-      # Step 6: Train Model or Mock Model Directory
+      # Step 7: Train Model or Mock Model Directory
       - name: Prepare Model Directory
         run: |
           set -e
@@ -62,21 +70,21 @@ jobs:
             echo "part-00000" > models/tuned_rf_model/part-00000
           fi
 
-      # Step 7: Run linting with pylint
+      # Step 8: Run linting with pylint
       - name: Lint Code
         run: |
           set -e
           source venv/bin/activate
           pylint src tests
 
-      # Step 8: Run tests with pytest
+      # Step 9: Run tests with pytest
       - name: Run Tests
         run: |
           set -e
           source venv/bin/activate
           pytest tests/ --junitxml=pytest-report.xml
 
-      # Step 9: Upload test results (optional)
+      # Step 10: Upload test results (optional)
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v3
