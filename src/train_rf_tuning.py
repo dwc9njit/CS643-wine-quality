@@ -8,6 +8,14 @@ from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 from pyspark.ml.classification import RandomForestClassifier
 from utils import load_and_prepare_data
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
+
+AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY")
+AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,15 +28,14 @@ def main():
     spark = (
         SparkSession.builder
         .appName("Random Forest Tuning")
-        .config("spark.hadoop.fs.s3a.access.key", "REDACTED")
-        .config("spark.hadoop.fs.s3a.secret.key", "REDACTED")
+        .config("spark.hadoop.fs.s3a.access.key", AWS_ACCESS_KEY)
+        .config("spark.hadoop.fs.s3a.secret.key", AWS_SECRET_KEY)
         .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com")
         .getOrCreate()
     )
 
     logger.info("Loading and preparing dataset from S3.")
     
-    # Load training data from S3
     training_data_path = "s3a://dwc9-wine-data-1/TrainingDataset.csv"
     dataset = load_and_prepare_data(spark, training_data_path)
 
