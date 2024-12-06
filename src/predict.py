@@ -23,5 +23,10 @@ def main():
     predictions = model.transform(dataset)
     predictions.show()
 
+    # Save predictions to a CSV file
+    logger.info("Saving predictions to 'data/predictions.csv'.")
+    predictions.select("features", "quality", "prediction").write.csv(
+        "data/predictions.csv", header=True, mode="overwrite")   
+
 if __name__ == "__main__":
     main()
