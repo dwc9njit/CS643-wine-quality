@@ -36,13 +36,15 @@ def main():
 
     # Configure Spark to connect to S3
     spark = (
-        SparkSession.builder
-        .appName("Random Forest Tuning")
-        .config("spark.hadoop.fs.s3a.access.key", AWS_ACCESS_KEY)
-        .config("spark.hadoop.fs.s3a.secret.key", AWS_SECRET_KEY)
-        .config("spark.hadoop.fs.s3a.endpoint", S3_ENDPOINT)
-        .getOrCreate()
+    SparkSession.builder
+    .appName("Random Forest Tuning")
+    .config("spark.hadoop.fs.s3a.access.key", AWS_ACCESS_KEY)
+    .config("spark.hadoop.fs.s3a.secret.key", AWS_SECRET_KEY)
+    .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com")
+    .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
+    .getOrCreate()
     )
+
 
     try:
         logger.info("Loading and preparing dataset from S3.")
