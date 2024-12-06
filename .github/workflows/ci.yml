@@ -15,11 +15,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Check out the repository
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Step 2: Cache Python Dependencies
       - name: Cache Python Dependencies
         uses: actions/cache@v3
         with:
@@ -28,13 +26,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      # Step 3: Set up Python
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
           python-version: 3.10.12
 
-      # Step 4: Install dependencies
       - name: Install Dependencies
         run: |
           set -e
@@ -42,54 +38,51 @@ jobs:
           source venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
-          pip install python-dotenv
+          pip install pyspark==3.5.3 hadoop-aws
 
-      # Step 5: Set AWS Credentials from Secrets
       - name: Set AWS Credentials
         env:
-          AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
-          AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
         run: |
-          set -e
-          echo "AWS_ACCESS_KEY=${AWS_ACCESS_KEY:0:4}********"
-          echo "AWS_SECRET_KEY=${AWS_SECRET_KEY:0:4}********"
+          echo "AWS Credentials are set."
 
-      # Step 6: Export PYTHONPATH
       - name: Set PYTHONPATH
         run: |
           echo "PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE/src" >> $GITHUB_ENV
 
-      # Step 7: Train Model or Mock Model Directory
-      - name: Prepare Model Directory
+      - name: Train Model
         env:
-          AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
-          AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
         run: |
           set -e
           source venv/bin/activate
           if [ -f "src/train_rf_tuning.py" ]; then
             python src/train_rf_tuning.py
           else
-            mkdir -p models/tuned_rf_model
-            echo "metadata" > models/tuned_rf_model/metadata
-            echo "part-00000" > models/tuned_rf_model/part-00000
+            echo "train_rf_tuning.py not found. Please ensure the file is present in the repository." && exit 1
           fi
 
-      # Step 8: Run linting with pylint
+      - name: Upload Model Artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: model-artifacts
+          path: models/tuned_rf_model
+
       - name: Lint Code
         run: |
           set -e
           source venv/bin/activate
           pylint src tests
 
-      # Step 9: Run tests with pytest
       - name: Run Tests
         run: |
           set -e
           source venv/bin/activate
           pytest tests/ --junitxml=pytest-report.xml
 
-      # Step 10: Upload test results (optional)
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v3
