@@ -3,18 +3,9 @@ Train a Random Forest model for wine quality prediction.
 """
 
 import logging
-from pyspark.sql import SparkSession
 from pyspark.ml.classification import RandomForestClassifier
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
-from utils import load_and_prepare_data
-from dotenv import load_dotenv
-import os
-
-# Load environment variables
-load_dotenv()
-
-AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY")
-AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY")
+from utils import get_spark_session, load_and_prepare_data
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -23,21 +14,15 @@ def main():
     """
     Main function to train a Random Forest model.
     """
-    # Configure Spark to connect to S3
-    spark = (
-    SparkSession.builder
-    .appName("Random Forest Tuning")
-    .config("spark.hadoop.fs.s3a.access.key", AWS_ACCESS_KEY)
-    .config("spark.hadoop.fs.s3a.secret.key", AWS_SECRET_KEY)
-    .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com")
-    .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
-    .getOrCreate()
-    )
+    # Get pre-configured SparkSession
+    spark = get_spark_session("Train Random Forest Model")
 
-    
     logger.info("Loading and preparing dataset from S3.")
-
+    
+    # S3 path for training data
     training_data_path = "s3a://dwc9-wine-data-1/TrainingDataset.csv"
+    
+    # Load and prepare data
     dataset = load_and_prepare_data(spark, training_data_path)
 
     logger.info("Training Random Forest model.")
@@ -50,11 +35,11 @@ def main():
     logger.info(f"Saving model to {model_output_path}.")
     model.write().overwrite().save(model_output_path)
 
-    # Model evaluation
+    # Evaluate the model
     logger.info("Evaluating the model.")
     predictions = model.transform(dataset)
-    evaluator = MulticlassClassificationEvaluator(labelCol="quality", predictionCol="prediction")
-    accuracy = evaluator.evaluate(predictions, {evaluator.metricName: "accuracy"})
+    evaluator = MulticlassClassificationEvaluator(labelCol="quality", predictionCol="prediction", metricName="accuracy")
+    accuracy = evaluator.evaluate(predictions)
     logger.info("Model accuracy: %.2f%%", accuracy * 100)
 
 if __name__ == "__main__":

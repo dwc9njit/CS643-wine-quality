@@ -3,17 +3,8 @@ Make predictions using a trained model.
 """
 
 import logging
-from pyspark.sql import SparkSession
 from pyspark.ml.classification import RandomForestClassificationModel
-from utils import load_and_prepare_data
-from dotenv import load_dotenv
-import os
-
-# Load environment variables
-load_dotenv()
-
-AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY")
-AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY")
+from utils import load_and_prepare_data, get_spark_session
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -22,17 +13,8 @@ def main():
     """
     Main function for making predictions.
     """
-    # Configure Spark to connect to S3
-    spark = (
-    SparkSession.builder
-    .appName("Random Forest Tuning")
-    .config("spark.hadoop.fs.s3a.access.key", AWS_ACCESS_KEY)
-    .config("spark.hadoop.fs.s3a.secret.key", AWS_SECRET_KEY)
-    .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com")
-    .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
-    .getOrCreate()
-    )
-
+    # Get pre-configured SparkSession
+    spark = get_spark_session("Make Predictions")
 
     logger.info("Loading and preparing dataset from S3.")
     

@@ -3,16 +3,12 @@ Train a machine learning model for wine quality prediction.
 """
 
 import logging
-from pyspark.sql import SparkSession
-from utils import load_and_prepare_data
-from dotenv import load_dotenv
 import os
+from utils import get_spark_session, load_and_prepare_data
+from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
-
-AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY")
-AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -21,24 +17,23 @@ def main():
     """
     Main function to train a model.
     """
-    # Configure Spark to connect to S3
-    spark = (
-    SparkSession.builder
-    .appName("Random Forest Tuning")
-    .config("spark.hadoop.fs.s3a.access.key", AWS_ACCESS_KEY)
-    .config("spark.hadoop.fs.s3a.secret.key", AWS_SECRET_KEY)
-    .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com")
-    .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
-    .getOrCreate()
-    )
+    # Get pre-configured SparkSession
+    spark = get_spark_session("Train Machine Learning Model")
 
     logger.info("Loading and preparing dataset from S3.")
-
+    
+    # S3 path for training data
     s3_path = "s3a://dwc9-wine-data-1/TrainingDataset.csv"
+    
+    # Load and prepare data
     processed_data = load_and_prepare_data(spark, s3_path)
 
     logger.info("Dataset prepared. Model training logic goes here.")
-    # Add model training logic here...
+    
+    # Add model training logic here, e.g., fit a machine learning model
+    # Example:
+    # model = YourModelClass().fit(processed_data)
+    # model.write().overwrite().save("s3a://dwc9-wine-data-1/models/your_model")
 
 if __name__ == "__main__":
     main()

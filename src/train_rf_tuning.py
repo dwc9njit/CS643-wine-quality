@@ -3,20 +3,11 @@ Hyperparameter tuning for a Random Forest model in Spark.
 """
 
 import logging
-from pyspark.sql import SparkSession
 from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 from pyspark.ml.classification import RandomForestClassifier
-from utils import load_and_prepare_data
-from dotenv import load_dotenv
-import os
+from utils import get_spark_session, load_and_prepare_data
 
-# Load environment variables
-load_dotenv()
-
-AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY")
-AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY")
-S3_ENDPOINT = os.getenv("S3_ENDPOINT", "s3.amazonaws.com")
 TRAINING_DATA_PATH = "s3a://dwc9-wine-data-1/TrainingDataset.csv"
 MODEL_OUTPUT_PATH = "s3a://dwc9-wine-data-1/models/tuned_rf_model"
 
@@ -27,24 +18,8 @@ def main():
     """
     Main function for hyperparameter tuning.
     """
-    # Validate AWS credentials
-    if not AWS_ACCESS_KEY or not AWS_SECRET_KEY:
-        logger.error("AWS_ACCESS_KEY or AWS_SECRET_KEY is not set.")
-        raise ValueError("Missing AWS credentials. Please set them in the environment.")
-    
-    logger.info("AWS_ACCESS_KEY: %s", AWS_ACCESS_KEY[:4] + "..." + AWS_ACCESS_KEY[-4:])
-
-    # Configure Spark to connect to S3
-    spark = (
-    SparkSession.builder
-    .appName("Random Forest Tuning")
-    .config("spark.hadoop.fs.s3a.access.key", AWS_ACCESS_KEY)
-    .config("spark.hadoop.fs.s3a.secret.key", AWS_SECRET_KEY)
-    .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com")
-    .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
-    .getOrCreate()
-    )
-
+    # Get pre-configured SparkSession
+    spark = get_spark_session("Random Forest Hyperparameter Tuning")
 
     try:
         logger.info("Loading and preparing dataset from S3.")
