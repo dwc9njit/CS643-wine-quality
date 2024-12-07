@@ -82,6 +82,8 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+          BUCKET_NAME: "dwc9-wine-data-1"
+          TRAINING_DATA_PATH: "datasets/TrainingDataset.csv"
         run: |
           set -e
           source venv/bin/activate
