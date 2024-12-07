@@ -1,5 +1,5 @@
 """
-Train a machine learning model for wine quality prediction.
+Train a machine learning model for wine quality prediction..
 """
 
 import logging
