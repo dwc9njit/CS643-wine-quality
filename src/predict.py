@@ -1,5 +1,5 @@
 """
-Make predictions using a trained model and validate the resultss.
+Make predictions using a trained model and validate the resultSss.
 """
 
 import logging
