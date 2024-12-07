@@ -1,5 +1,5 @@
 """
-Make predictions using a trained model and validate the resultSss.
+Make predictions using a trained model and validate the results.
 """
 
 import logging
@@ -13,34 +13,40 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-logging.basicConfig(level=logging.INFO)
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 def main():
     """
     Main function for making predictions and validating results.
     """
-    # Get pre-configured SparkSession
-    spark = get_spark_session("Make Predictions and Validate Model")
-
-    # Construct S3 paths
-    validation_data_path = f"s3a://{os.getenv('BUCKET_NAME')}/{os.getenv('VALIDATION_DATA_PATH')}"
-    model_path = f"s3a://{os.getenv('BUCKET_NAME')}/models/tuned_rf_model"
-    predictions_output_path = f"s3a://{os.getenv('BUCKET_NAME')}/predictions/predictions.csv"
-
     try:
+        # Get pre-configured SparkSession
+        spark = get_spark_session("Make Predictions and Validate Model")
+
+        # Fetch and validate environment variables
+        bucket_name = os.getenv("BUCKET_NAME")
+        validation_data_path = os.getenv("VALIDATION_DATA_PATH")
+        if not bucket_name or not validation_data_path:
+            logger.error("BUCKET_NAME or VALIDATION_DATA_PATH is missing in environment variables.")
+            raise ValueError("Missing required environment variables.")
+
+        model_path = f"s3a://{bucket_name}/models/tuned_rf_model"
+        predictions_output_path = f"s3a://{bucket_name}/predictions/predictions.csv"
+
         # Load and prepare dataset
         logger.info("Loading and preparing dataset from S3.")
-        dataset = load_and_prepare_data(spark, validation_data_path)
+        dataset = load_and_prepare_data(spark, f"s3a://{bucket_name}/{validation_data_path}")
 
-        # Validate dataset
         if dataset.rdd.isEmpty():
             logger.error("The dataset is empty. Please check the data source.")
-            return
+            raise ValueError("Validation dataset is empty.")
 
         logger.info("Dataset schema: %s", dataset.schema.simpleString())
+
     except Exception as e:
-        logger.error(f"Error loading dataset: {e}")
+        logger.error(f"Error during dataset loading: {e}")
         return
 
     try:
@@ -48,7 +54,7 @@ def main():
         logger.info(f"Loading trained model from {model_path}.")
         model = RandomForestClassificationModel.load(model_path)
     except Exception as e:
-        logger.error(f"Error loading model: {e}")
+        logger.error(f"Error loading trained model: {e}")
         return
 
     try:
@@ -56,14 +62,14 @@ def main():
         logger.info("Making predictions.")
         predictions = model.transform(dataset)
 
-        # Include derived columns (e.g., probabilities) if applicable
+        # Include essential columns
         predictions = predictions.select(
             col("features").cast("string").alias("features"),
             "quality",
             "prediction"
         )
 
-        # Show a sample of predictions
+        # Display a sample of predictions
         logger.info("Sample predictions:")
         predictions.show(10)
 
