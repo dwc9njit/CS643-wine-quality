@@ -15,9 +15,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout the code
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      # Step 2: Cache Python dependencies
       - name: Cache Python Dependencies
         uses: actions/cache@v3
         with:
@@ -26,11 +28,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
+      # Step 3: Set up Python
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
           python-version: 3.10.12
 
+      # Step 4: Install dependencies
       - name: Install Dependencies
         run: |
           set -e
@@ -39,6 +43,18 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
+      # Step 5: Set up Spark and Hadoop
+      - name: Set up Spark and Hadoop
+        run: |
+          set -e
+          curl -O https://downloads.apache.org/spark/spark-3.3.1/spark-3.3.1-bin-hadoop3.tgz
+          tar -xzf spark-3.3.1-bin-hadoop3.tgz
+          mv spark-3.3.1-bin-hadoop3 /usr/local/spark
+          curl -O https://downloads.apache.org/hadoop/common/hadoop-3.3.1/hadoop-3.3.1.tar.gz
+          tar -xzf hadoop-3.3.1.tar.gz
+          mv hadoop-3.3.1 /usr/local/hadoop
+
+      # Step 6: Set AWS Credentials
       - name: Set AWS Credentials
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
@@ -49,6 +65,16 @@ jobs:
           echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_KEY }}" >> $GITHUB_ENV
           echo "AWS credentials successfully set."
 
+      # Step 7: Verify environment variables
+      - name: Verify Environment Variables
+        run: |
+          set -e
+          echo "BUCKET_NAME=${{ secrets.BUCKET_NAME }}"
+          echo "TRAINING_DATA_PATH=${{ secrets.TRAINING_DATA_PATH }}"
+          echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY }}"
+          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_KEY }}"
+
+      # Step 8: Train model with Spark
       - name: Train Model with Spark
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
@@ -56,7 +82,7 @@ jobs:
         run: |
           set -e
           source venv/bin/activate
-          spark-submit \
+          /usr/local/spark/bin/spark-submit \
             --packages org.apache.hadoop:hadoop-aws:3.3.1,com.amazonaws:aws-java-sdk-bundle:1.12.530 \
             --conf spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version=2 \
             --conf spark.hadoop.fs.s3a.committer.name=directory \
@@ -64,7 +90,8 @@ jobs:
             --conf spark.hadoop.fs.s3a.committer.staging.tmp.path=/tmp/s3a \
             --conf spark.hadoop.fs.s3a.committer.magic.enabled=false \
             src/train_rf_tuning.py
-      
+
+      # Step 9: Upload model artifacts
       - name: Upload Model Artifacts
         if: always()
         uses: actions/upload-artifact@v3
@@ -72,18 +99,21 @@ jobs:
           name: model-artifacts
           path: models/tuned_rf_model
 
+      # Step 10: Lint code
       - name: Lint Code
         run: |
           set -e
           source venv/bin/activate
           pylint src tests
 
+      # Step 11: Run tests
       - name: Run Tests
         run: |
           set -e
           source venv/bin/activate
           pytest tests/ --junitxml=pytest-report.xml
 
+      # Step 12: Upload test results
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v3
