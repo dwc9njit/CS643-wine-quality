@@ -30,7 +30,7 @@ def get_spark_session(app_name):
                 .config("spark.hadoop.fs.s3a.secret.key", AWS_SECRET_KEY)
                 .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com")
                 .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
-                .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.6,org.apache.hadoop:hadoop-common:3.3.6,com.amazonaws:aws-java-sdk-bundle:1.12.530")
+                .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.1,org.apache.hadoop:hadoop-common:3.3.1,com.amazonaws:aws-java-sdk-bundle:1.12.530")
                 .config("spark.hadoop.fs.s3a.aws.credentials.provider", "com.amazonaws.auth.DefaultAWSCredentialsProviderChain")
                 .config("spark.hadoop.fs.s3a.prefetch.enable", "false")
                 .config("spark.hadoop.fs.s3a.experimental.input.fadvise", "sequential")
