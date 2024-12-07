@@ -47,10 +47,10 @@ jobs:
       - name: Set up Spark and Hadoop
         run: |
           set -e
-          curl -O https://downloads.apache.org/spark/spark-3.3.1/spark-3.3.1-bin-hadoop3.tgz
+          curl -O https://archive.apache.org/dist/spark/spark-3.3.1/spark-3.3.1-bin-hadoop3.tgz
           tar -xzf spark-3.3.1-bin-hadoop3.tgz
           mv spark-3.3.1-bin-hadoop3 /usr/local/spark
-          curl -O https://downloads.apache.org/hadoop/common/hadoop-3.3.1/hadoop-3.3.1.tar.gz
+          curl -O https://archive.apache.org/dist/hadoop/common/hadoop-3.3.1/hadoop-3.3.1.tar.gz
           tar -xzf hadoop-3.3.1.tar.gz
           mv hadoop-3.3.1 /usr/local/hadoop
 
