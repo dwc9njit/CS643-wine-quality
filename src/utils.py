@@ -12,7 +12,7 @@ load_dotenv()
 
 def get_spark_session(app_name):
     """
-    Create and return a SparkSession configured for S3 with DirectWrite.
+    Create, and return a SparkSession configured for S3 with DirectWrite.
     Handles missing AWS credentials gracefully for debugging in local environments.
     """
     AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID") or os.getenv("AWS_ACCESS_KEY")
