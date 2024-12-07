@@ -12,15 +12,15 @@ load_dotenv()
 
 def get_spark_session(app_name):
     """
-    Create, and return a SparkSession configured for S3 with DirectWrite.
+    Create and return a SparkSession configured for S3 with DirectWrite.
     Handles missing AWS credentials gracefully for debugging in local environments.
     """
     AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID") or os.getenv("AWS_ACCESS_KEY")
     AWS_SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY") or os.getenv("AWS_SECRET_KEY")
 
     if not AWS_ACCESS_KEY or not AWS_SECRET_KEY:
-        logger.error("AWS_ACCESS_KEY or AWS_SECRET_KEY is not set.")
-        raise ValueError("Missing AWS credentials. Please set them in the environment.")
+        logger.error("AWS credentials are missing. Check AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables.")
+        raise ValueError("Missing AWS credentials.")
 
     try:
         spark = (
@@ -32,14 +32,16 @@ def get_spark_session(app_name):
             .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
             .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.6,com.amazonaws:aws-java-sdk-bundle:1.12.530")
             .config("spark.hadoop.fs.s3a.aws.credentials.provider", "com.amazonaws.auth.DefaultAWSCredentialsProviderChain")
-            .config("spark.hadoop.fs.s3a.prefetch.enable", "false")
-            .config("spark.hadoop.fs.s3a.experimental.input.fadvise", "sequential")  # Disable prefetching
+            .config("spark.hadoop.fs.s3a.prefetch.enable", "false")  # Disable S3A prefetching
+            .config("spark.hadoop.fs.s3a.experimental.input.fadvise", "sequential")  # Optimize for sequential access
             .config("spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version", "2")
             .config("spark.hadoop.fs.s3a.committer.name", "directory")
             .config("spark.hadoop.fs.s3a.committer.staging.conflict-mode", "replace")
             .config("spark.hadoop.fs.s3a.committer.staging.tmp.path", "/tmp/s3a")
             .config("spark.hadoop.fs.s3a.committer.magic.enabled", "false")
-            
+            .config("spark.hadoop.fs.s3a.connection.maximum", "100")  # Adjust max S3 connections
+            .config("spark.hadoop.fs.s3a.connection.timeout", "5000")  # Connection timeout in ms
+            .config("spark.hadoop.fs.s3a.attempts.maximum", "3")  # Retry attempts for S3 operations
             .getOrCreate()
         )
 
@@ -57,6 +59,10 @@ def load_and_prepare_data(spark, filepath):
     try:
         logger.info(f"Loading dataset from {filepath}")
         data = spark.read.csv(filepath, header=True, inferSchema=True, sep=";")
+        if data.rdd.isEmpty():
+            logger.error("Dataset is empty or could not be loaded.")
+            raise ValueError("Dataset is empty.")
+
         data = data.toDF(*[col.strip().replace(" ", "_") for col in data.columns])
 
         logger.info("Assembling features.")
