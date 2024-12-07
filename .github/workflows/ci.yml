@@ -1,4 +1,4 @@
-name: Python CI/CD Workflow with Spark and Docker
+name: Python CI/CD Workflow
 
 on:
   push:
@@ -15,46 +15,46 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the code from the repository
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Set up Python environment
+      - name: Cache Python Dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
           python-version: 3.10.12
 
-      # Install dependencies
       - name: Install Dependencies
         run: |
+          set -e
           python -m venv venv
           source venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Set up Spark
-      - name: Set up Spark
-        run: |
-          curl -O https://downloads.apache.org/spark/spark-3.3.1/spark-3.3.1-bin-hadoop3.tgz
-          tar -xvzf spark-3.3.1-bin-hadoop3.tgz
-          export SPARK_HOME=$PWD/spark-3.3.1-bin-hadoop3
-          export PATH=$SPARK_HOME/bin:$PATH
-
-      # Set AWS Credentials
       - name: Set AWS Credentials
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
         run: |
+          set -e
+          echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY }}" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_KEY }}" >> $GITHUB_ENV
           echo "AWS credentials successfully set."
 
-      # Train Model using Spark
       - name: Train Model with Spark
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
         run: |
+          set -e
           source venv/bin/activate
           spark-submit \
             --packages org.apache.hadoop:hadoop-aws:3.3.1,com.amazonaws:aws-java-sdk-bundle:1.12.530 \
@@ -64,59 +64,29 @@ jobs:
             --conf spark.hadoop.fs.s3a.committer.staging.tmp.path=/tmp/s3a \
             --conf spark.hadoop.fs.s3a.committer.magic.enabled=false \
             src/train_rf_tuning.py
-
-      # Verify and Upload Model Artifacts
-      - name: Verify Model Artifacts
-        run: |
-          if [ ! -d "models/tuned_rf_model" ]; then
-            echo "Model artifacts directory not found!"
-            exit 1
-          fi
+      
       - name: Upload Model Artifacts
+        if: always()
         uses: actions/upload-artifact@v3
         with:
           name: model-artifacts
           path: models/tuned_rf_model
 
-      # Lint the Code
       - name: Lint Code
         run: |
+          set -e
           source venv/bin/activate
           pylint src tests
 
-      # Run Tests
       - name: Run Tests
         run: |
+          set -e
           source venv/bin/activate
           pytest tests/ --junitxml=pytest-report.xml
 
-      # Upload Test Results
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v3
         with:
           name: pytest-report
           path: pytest-report.xml
-
-  dockerize:
-    runs-on: ubuntu-latest
-
-    steps:
-      # Checkout the code from the repository
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      # Build Docker Image
-      - name: Build Docker Image
-        run: |
-          docker build -t my-spark-app .
-
-      # Push Docker Image to DockerHub
-      - name: Push Docker Image
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        run: |
-          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-          docker tag my-spark-app my-docker-repo/my-spark-app:latest
-          docker push my-docker-repo/my-spark-app:latest
