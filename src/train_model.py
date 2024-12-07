@@ -24,7 +24,7 @@ def main():
 
     logger.info("Loading and preparing dataset from S3.")
     
-    # S3 path for training data
+    # Construct S3 path for training data
     training_data_path = f"s3a://{os.getenv('BUCKET_NAME')}/{os.getenv('TRAINING_DATA_PATH')}"
 
     # Load and prepare data
@@ -44,7 +44,7 @@ def main():
     logger.info(f"Model accuracy: {accuracy * 100:.2f}%")
 
     # Save the trained model to S3
-    model_output_path = "s3a://dwc9-wine-data-1/models/tuned_rf_model"
+    model_output_path = f"s3a://{os.getenv('BUCKET_NAME')}/models/tuned_rf_model"
     logger.info(f"Saving model to {model_output_path}.")
     model.write().overwrite().save(model_output_path)
 
