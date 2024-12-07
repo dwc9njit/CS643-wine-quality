@@ -25,7 +25,8 @@ def get_spark_session(app_name):
 
     if not aws_access_key or not aws_secret_key:
         logger.error(
-            "AWS credentials are missing. Check AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables."
+            "AWS credentials are missing. Check AWS_ACCESS_KEY_ID and "
+            "AWS_SECRET_ACCESS_KEY environment variables."
         )
         raise ValueError("Missing AWS credentials.")
 
