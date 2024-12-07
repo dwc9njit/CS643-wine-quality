@@ -49,10 +49,13 @@ jobs:
           set -e
           curl -O https://archive.apache.org/dist/spark/spark-3.3.1/spark-3.3.1-bin-hadoop3.tgz
           tar -xzf spark-3.3.1-bin-hadoop3.tgz
-          mv spark-3.3.1-bin-hadoop3 /usr/local/spark
+          mv spark-3.3.1-bin-hadoop3 $HOME/spark
           curl -O https://archive.apache.org/dist/hadoop/common/hadoop-3.3.1/hadoop-3.3.1.tar.gz
           tar -xzf hadoop-3.3.1.tar.gz
-          mv hadoop-3.3.1 /usr/local/hadoop
+          mv hadoop-3.3.1 $HOME/hadoop
+          echo "SPARK_HOME=$HOME/spark" >> $GITHUB_ENV
+          echo "HADOOP_HOME=$HOME/hadoop" >> $GITHUB_ENV
+          echo "PATH=$HOME/spark/bin:$HOME/hadoop/bin:$PATH" >> $GITHUB_ENV
 
       # Step 6: Set AWS Credentials
       - name: Set AWS Credentials
@@ -82,7 +85,7 @@ jobs:
         run: |
           set -e
           source venv/bin/activate
-          /usr/local/spark/bin/spark-submit \
+          $HOME/spark/bin/spark-submit \
             --packages org.apache.hadoop:hadoop-aws:3.3.1,com.amazonaws:aws-java-sdk-bundle:1.12.530 \
             --conf spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version=2 \
             --conf spark.hadoop.fs.s3a.committer.name=directory \
