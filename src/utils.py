@@ -24,25 +24,22 @@ def get_spark_session(app_name):
 
     try:
         spark = (
-            SparkSession.builder
-            .appName(app_name)
-            .config("spark.hadoop.fs.s3a.access.key", AWS_ACCESS_KEY)
-            .config("spark.hadoop.fs.s3a.secret.key", AWS_SECRET_KEY)
-            .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com")
-            .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
-            .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.6,com.amazonaws:aws-java-sdk-bundle:1.12.530")
-            .config("spark.hadoop.fs.s3a.aws.credentials.provider", "com.amazonaws.auth.DefaultAWSCredentialsProviderChain")
-            .config("spark.hadoop.fs.s3a.prefetch.enable", "false")  # Disable S3A prefetching
-            .config("spark.hadoop.fs.s3a.experimental.input.fadvise", "sequential")  # Optimize for sequential access
-            .config("spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version", "2")
-            .config("spark.hadoop.fs.s3a.committer.name", "directory")
-            .config("spark.hadoop.fs.s3a.committer.staging.conflict-mode", "replace")
-            .config("spark.hadoop.fs.s3a.committer.staging.tmp.path", "/tmp/s3a")
-            .config("spark.hadoop.fs.s3a.committer.magic.enabled", "false")
-            .config("spark.hadoop.fs.s3a.connection.maximum", "100")  # Adjust max S3 connections
-            .config("spark.hadoop.fs.s3a.connection.timeout", "5000")  # Connection timeout in ms
-            .config("spark.hadoop.fs.s3a.attempts.maximum", "3")  # Retry attempts for S3 operations
-            .getOrCreate()
+             SparkSession.builder
+                .appName("Random Forest Hyperparameter Tuning")
+                .config("spark.hadoop.fs.s3a.access.key", AWS_ACCESS_KEY)
+                .config("spark.hadoop.fs.s3a.secret.key", AWS_SECRET_KEY)
+                .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com")
+                .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
+                .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.1,org.apache.hadoop:hadoop-common:3.3.1,com.amazonaws:aws-java-sdk-bundle:1.12.530")
+                .config("spark.hadoop.fs.s3a.aws.credentials.provider", "com.amazonaws.auth.DefaultAWSCredentialsProviderChain")
+                .config("spark.hadoop.fs.s3a.prefetch.enable", "false")
+                .config("spark.hadoop.fs.s3a.experimental.input.fadvise", "sequential")
+                .config("spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version", "2")
+                .config("spark.hadoop.fs.s3a.committer.name", "directory")
+                .config("spark.hadoop.fs.s3a.committer.staging.conflict-mode", "replace")
+                .config("spark.hadoop.fs.s3a.committer.staging.tmp.path", "/tmp/s3a")
+                .config("spark.hadoop.fs.s3a.committer.magic.enabled", "false")
+                .getOrCreate()
         )
 
         logger.info("SparkSession created successfully.")
